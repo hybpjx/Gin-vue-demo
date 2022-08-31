@@ -5,6 +5,7 @@ import (
 	"GinDemo/model"
 	"GinDemo/utils"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -53,9 +54,21 @@ func Register(context *gin.Context) {
 	}
 
 	// 4. 创建用户
+
+	// 密码是不能明文保存的
+	hasedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "密码加密错误",
+		})
+		return
+	}
+
 	newUser := model.User{
 		Name:      name,
-		Password:  password,
+		Password:  string(hasedPassword),
 		Telephone: telephone,
 	}
 
@@ -67,6 +80,66 @@ func Register(context *gin.Context) {
 		"message": "注册成功",
 	})
 
+}
+
+func Login(context *gin.Context) {
+
+	DB := common.GetDb()
+
+	//	1. 获取参数
+	telephone := context.PostForm("telephone")
+	password := context.PostForm("password")
+	// 2. 数据验证
+	if len(telephone) != 11 {
+		context.JSON(http.StatusUnprocessableEntity, gin.H{
+			"code":    422,
+			"message": "手机号必须是11位",
+		})
+		return
+	}
+
+	if len(password) < 6 && len(password) > 16 {
+		context.JSON(http.StatusUnprocessableEntity, gin.H{
+			"code":    422,
+			"message": "密码必须是6-16位之间",
+		})
+		return
+	}
+
+	// 判断手机号是否存在
+	var user model.User
+	DB.Where("telephone = ?", telephone).First(&user)
+
+	// 等于0 即 查不到
+	if user.ID != 0 {
+		context.JSON(http.StatusUnprocessableEntity, gin.H{
+			"code":    422,
+			"message": "用户不存在",
+		})
+		return
+	}
+
+	// 判断密码是否正确
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": "密码错误",
+		})
+		return
+	}
+
+	// 发送token
+	token := 111
+
+	// 5. 返回结果
+	context.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"data": gin.H{
+			"token": token,
+		},
+		"message": "登录成功",
+	})
 }
 
 func isTelephoneExist(db *gorm.DB, telephone string) bool {
