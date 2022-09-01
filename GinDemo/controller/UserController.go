@@ -4,11 +4,12 @@ import (
 	"GinDemo/common"
 	"GinDemo/model"
 	"GinDemo/utils"
+	"log"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
 )
 
 func Register(context *gin.Context) {
@@ -110,8 +111,8 @@ func Login(context *gin.Context) {
 	var user model.User
 	DB.Where("telephone = ?", telephone).First(&user)
 
-	// 等于0 即 查不到
-	if user.ID != 0 {
+	// 等于0 即 查不到 所以等于0 才会返回不存在
+	if user.ID == 0 {
 		context.JSON(http.StatusUnprocessableEntity, gin.H{
 			"code":    422,
 			"message": "用户不存在",
@@ -130,7 +131,15 @@ func Login(context *gin.Context) {
 	}
 
 	// 发送token
-	token := 111
+	token, err := common.ReleaseToken(user)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "系统异常",
+		})
+		log.Fatalf("token generate error: %v\n", err)
+		return
+	}
 
 	// 5. 返回结果
 	context.JSON(http.StatusOK, gin.H{
@@ -139,6 +148,15 @@ func Login(context *gin.Context) {
 			"token": token,
 		},
 		"message": "登录成功",
+	})
+}
+
+func Info(context *gin.Context) {
+	user, _ := context.Get("user")
+
+	context.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"user": user,
 	})
 }
 
