@@ -26,7 +26,7 @@ func InitDB() *gorm.DB {
 		database,
 		charset,
 	)
-
+	
 	var err error
 
 	DB, err = gorm.Open(mysql.Open(args), &gorm.Config{})

@@ -6,9 +6,10 @@ import (
 )
 
 func main() {
+	//初始化数据库
 	common.InitDB()
 
-
+	//使用gin
 	r := gin.Default()
 	r = CollectRoute(r)
 

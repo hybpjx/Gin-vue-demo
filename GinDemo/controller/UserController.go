@@ -3,15 +3,16 @@ package controller
 import (
 	"GinDemo/common"
 	"GinDemo/model"
+	"GinDemo/response"
 	"GinDemo/utils"
-	"log"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"log"
+	"net/http"
 )
 
+// Register 用户注册模块
 func Register(context *gin.Context) {
 
 	db := common.GetDb()
@@ -22,18 +23,12 @@ func Register(context *gin.Context) {
 	password := context.PostForm("password")
 	// 2. 数据验证
 	if len(telephone) != 11 {
-		context.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "手机号必须是11位",
-		})
+		response.UnprocessableEntity(context, nil, "手机号必须是11位")
 		return
 	}
 
 	if len(password) < 6 && len(password) > 16 {
-		context.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "密码必须是6-16位之间",
-		})
+		response.UnprocessableEntity(context, nil, "密码必须是6-16位之间")
 		return
 	}
 
@@ -47,10 +42,8 @@ func Register(context *gin.Context) {
 	// 3. 判断手机号是否存在
 
 	if isTelephoneExist(db, telephone) {
-		context.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "用户已经注册了",
-		})
+		response.UnprocessableEntity(context, nil, "用户已经注册了")
+
 		return
 	}
 
@@ -60,10 +53,8 @@ func Register(context *gin.Context) {
 	hasedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "密码加密错误",
-		})
+
+		response.Response(context, http.StatusInternalServerError, 500, nil, "密码加密错误")
 		return
 	}
 
@@ -76,13 +67,11 @@ func Register(context *gin.Context) {
 	db.Create(&newUser)
 
 	// 5. 返回结果
-	context.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"message": "注册成功",
-	})
+	response.Success(context, nil, "注册成功")
 
 }
 
+// Login 用户登陆模块
 func Login(context *gin.Context) {
 
 	DB := common.GetDb()
@@ -92,18 +81,15 @@ func Login(context *gin.Context) {
 	password := context.PostForm("password")
 	// 2. 数据验证
 	if len(telephone) != 11 {
-		context.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "手机号必须是11位",
-		})
+		response.UnprocessableEntity(context, nil, "手机号必须是11位")
+
 		return
 	}
 
 	if len(password) < 6 && len(password) > 16 {
-		context.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "密码必须是6-16位之间",
-		})
+
+		response.UnprocessableEntity(context, nil, "密码必须是6-16位之间")
+
 		return
 	}
 
@@ -113,51 +99,63 @@ func Login(context *gin.Context) {
 
 	// 等于0 即 查不到 所以等于0 才会返回不存在
 	if user.ID == 0 {
-		context.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "用户不存在",
-		})
+
+		response.UnprocessableEntity(context, nil, "用户不存在")
+
 		return
 	}
 
 	// 判断密码是否正确
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"code":    400,
-			"message": "密码错误",
-		})
+
+		response.Response(context, http.StatusBadRequest, 400, nil, "密码错误")
+
 		return
 	}
 
 	// 发送token
 	token, err := common.ReleaseToken(user)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "系统异常",
-		})
+		response.Response(context, http.StatusInternalServerError, 500, nil, "系统异常")
+
 		log.Fatalf("token generate error: %v\n", err)
 		return
 	}
 
 	// 5. 返回结果
-	context.JSON(http.StatusOK, gin.H{
-		"code": 200,
-		"data": gin.H{
+	response.Success(
+		context,
+		gin.H{
 			"token": token,
 		},
-		"message": "登录成功",
-	})
+		"登录成功",
+	)
+
 }
 
+// Info 登录后 获取token 获得用户信息
 func Info(context *gin.Context) {
-	user, _ := context.Get("user")
+	//获得所有信息 UserInfo 是一个结构体
+	userInfo, _ := context.Get("userInfo")
 
-	context.JSON(http.StatusOK, gin.H{
-		"code": 200,
-		"user": user,
-	})
+	response.Success(
+		context, gin.H{
+			"userInfo": userInfo,
+		},
+		"返回成功",
+	)
+
+	/*
+		name, _ := context.Get("name")
+		telephone, _ := context.Get("telephone")
+		context.JSON(http.StatusOK, gin.H{
+			"code":      200,
+			"name":      name,
+			"telephone": telephone,
+		})
+	*/
+
 }
 
 func isTelephoneExist(db *gorm.DB, telephone string) bool {

@@ -1,70 +1,85 @@
-package main
+package middleware
 
 import (
-	"errors"
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"strings"
 	"time"
 )
+//Jwtkey 秘钥 可通过配置文件配置
+var Jwtkey = []byte("blog_jwt_key")
 
-type Userinfo struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+type MyClaims struct {
+	UserId int `json:"user_id"`
+	UserName string `json:"username"`
+	jwt.StandardClaims
 }
 
-func Macke(user *Userinfo) (token string, err error) { //生成jwt
-	claims := jwt.MapClaims{ //创建一个自己的声明
-		"name": user.Username,
-		"pwd":  user.Password,
-		"iss":  "lva",
-		"nbf":  time.Now().Unix(),
-		"exp":  time.Now().Add(time.Second * 4).Unix(),
-		"iat":  time.Now().Unix(),
+// CreateToken 生成token
+func CreateToken(userId int,userName string) (string,error) {
+	expireTime := time.Now().Add(2*time.Hour) //过期时间
+	nowTime := time.Now() //当前时间
+	claims := MyClaims{
+		UserId: userId,
+		UserName: userName,
+		StandardClaims:jwt.StandardClaims{
+			ExpiresAt:expireTime.Unix(), //过期时间戳
+			IssuedAt: nowTime.Unix(), //当前时间戳
+			Issuer: "blogLeo", //颁发者签名
+			Subject: "userToken", //签名主题
+		},
 	}
-
-	then := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	//fmt.Println(then) //打印&{ 0xc0000040a8 map[alg:HS256 typ:JWT] map[exp:1637212218 iat:1637212214 iss:lvjianhua name:zhansan nbf:1637212214 pwd:pwd]  false}
-
-	token, err = then.SignedString([]byte("gettoken"))
-
-	return
+	tokenStruct := jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
+	return tokenStruct.SignedString(Jwtkey)
 }
 
-func secret() jwt.Keyfunc { //按照这样的规则解析
-	return func(t *jwt.Token) (interface{}, error) {
-		return []byte("gettoken"), nil
+// CheckToken 验证token
+func CheckToken(token string) (*MyClaims,bool) {
+	tokenObj,_ := jwt.ParseWithClaims(token,&MyClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return Jwtkey,nil
+	})
+	if key,_ := tokenObj.Claims.(*MyClaims); tokenObj.Valid {
+		return key,true
+	}else{
+		return nil,false
 	}
 }
 
-//解析token
-func ParseToken(token string) (user *Userinfo, err error) {
-	user = &Userinfo{}
-	tokn, _ := jwt.Parse(token, secret())
+// JwtMiddleware jwt中间件
+func JwtMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		//从请求头中获取token
+		tokenStr := c.Request.Header.Get("Authorization")
+		//用户不存在
+		if tokenStr == "" {
+			c.JSON(http.StatusOK,gin.H{"code":0, "msg":"用户不存在"})
+			c.Abort() //阻止执行
+			return
+		}
+		//token格式错误
+		tokenSlice := strings.SplitN(tokenStr," ",2)
+		if len(tokenSlice) != 2 && tokenSlice[0] != "Bearer" {
+			c.JSON(http.StatusOK,gin.H{"code":0, "msg":"token格式错误"})
+			c.Abort() //阻止执行
+			return
+		}
+		//验证token
+		tokenStruck,ok := CheckToken(tokenSlice[1])
+		if !ok {
+			c.JSON(http.StatusOK,gin.H{"code":0, "msg":"token不正确"})
+			c.Abort() //阻止执行
+			return
+		}
+		//token超时
+		if time.Now().Unix() > tokenStruck.ExpiresAt {
+			c.JSON(http.StatusOK,gin.H{"code":0, "msg":"token过期"})
+			c.Abort() //阻止执行
+			return
+		}
+		c.Set("username",tokenStruck.UserName)
+		c.Set("user_id",tokenStruck.UserId)
 
-	claim, ok := tokn.Claims.(jwt.MapClaims)
-	if !ok {
-		err = errors.New("解析错误")
-		return
+		c.Next()
 	}
-	if !tokn.Valid {
-		err = errors.New("令牌错误！")
-		return
-	}
-	//fmt.Println(claim)
-	user.Username = claim["name"].(string) //强行转换为string类型
-	user.Password = claim["pwd"].(string)  //强行转换为string类型
-	return
-}
-
-func main() {
-	var use = Userinfo{"zic", "admin*123"}
-	tkn, _ := Macke(&use)
-	fmt.Println("_____", tkn)
-	// time.Sleep(time.Second * 8)超过时间打印令牌错误
-	user, err := ParseToken(tkn)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(user.Username)
 }
