@@ -1,0 +1,10 @@
+server:
+  port: 7777
+datasource:
+  driverName: mysql
+  host: 127.0.0.1
+  port: 3306
+  database: ginInessential
+  username: root
+  password: admin*123
+  charset: utf8

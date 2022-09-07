@@ -3,9 +3,14 @@ package main
 import (
 	"GinDemo/common"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
+	"os"
 )
 
 func main() {
+	//初始化配置
+	InitConfig()
+
 	//初始化数据库
 	common.InitDB()
 
@@ -13,5 +18,27 @@ func main() {
 	r := gin.Default()
 	r = CollectRoute(r)
 
-	_ = r.Run(":9000")
+	port := viper.GetString("server.port")
+
+	if port != "" {
+		_ = r.Run(":" + port)
+	} else {
+		err := r.Run()
+		if err != nil {
+			return 
+		}
+	}
+
+}
+
+func InitConfig() {
+	workDir, _ := os.Getwd()
+	viper.SetConfigName("application")
+	viper.SetConfigType("yml")
+	viper.AddConfigPath(workDir + "/config")
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		return
+	}
 }
