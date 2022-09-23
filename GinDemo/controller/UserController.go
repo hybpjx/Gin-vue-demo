@@ -5,6 +5,7 @@ import (
 	"GinDemo/model"
 	"GinDemo/response"
 	"GinDemo/utils"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -17,10 +18,17 @@ func Register(context *gin.Context) {
 
 	db := common.GetDb()
 
+	// 使用绑定结构体的方法 获取请求参数
+
+
+	var requestUser = model.User{}
+	context.Bind(&requestUser)
+	//json.ne
+	fmt.Println(requestUser)
 	//	1. 获取参数
-	name := context.PostForm("name")
-	telephone := context.PostForm("telephone")
-	password := context.PostForm("password")
+	name := requestUser.Name
+	telephone := requestUser.Telephone
+	password := requestUser.Password
 	// 2. 数据验证
 	if len(telephone) != 11 {
 		response.UnprocessableEntity(context, nil, "手机号必须是11位")
@@ -66,8 +74,23 @@ func Register(context *gin.Context) {
 
 	db.Create(&newUser)
 
+	// 发送token
+	token, err := common.ReleaseToken(newUser)
+	if err != nil {
+		response.Response(context, http.StatusInternalServerError, 500, nil, "系统异常")
+
+		log.Fatalf("token generate error: %v\n", err)
+		return
+	}
+
 	// 5. 返回结果
-	response.Success(context, nil, "注册成功")
+	response.Success(
+		context,
+		gin.H{
+			"token": token,
+		},
+		"注册成功",
+	)
 
 }
 
