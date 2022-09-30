@@ -5,7 +5,6 @@ import (
 	"GinDemo/model"
 	"GinDemo/response"
 	"GinDemo/utils"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -23,8 +22,6 @@ func Register(context *gin.Context) {
 
 	var requestUser = model.User{}
 	context.Bind(&requestUser)
-	//json.ne
-	fmt.Println(requestUser)
 	//	1. 获取参数
 	name := requestUser.Name
 	telephone := requestUser.Telephone
@@ -50,7 +47,7 @@ func Register(context *gin.Context) {
 	// 3. 判断手机号是否存在
 
 	if isTelephoneExist(db, telephone) {
-		response.UnprocessableEntity(context, nil, "用户已经注册了")
+		response.UnprocessableEntity(context, nil, "用户已经被注册了")
 
 		return
 	}
@@ -62,7 +59,7 @@ func Register(context *gin.Context) {
 
 	if err != nil {
 
-		response.Response(context, http.StatusInternalServerError, 500, nil, "密码加密错误")
+		response.Response(context, http.StatusInternalServerError, nil, "密码加密错误")
 		return
 	}
 
@@ -77,7 +74,7 @@ func Register(context *gin.Context) {
 	// 发送token
 	token, err := common.ReleaseToken(newUser)
 	if err != nil {
-		response.Response(context, http.StatusInternalServerError, 500, nil, "系统异常")
+		response.Response(context, http.StatusInternalServerError,  nil, "系统异常")
 
 		log.Fatalf("token generate error: %v\n", err)
 		return
@@ -99,20 +96,19 @@ func Login(context *gin.Context) {
 
 	DB := common.GetDb()
 
+	var requestUser = model.User{}
+	context.Bind(&requestUser)
 	//	1. 获取参数
-	telephone := context.PostForm("telephone")
-	password := context.PostForm("password")
+	telephone := requestUser.Telephone
+	password := requestUser.Password
 	// 2. 数据验证
 	if len(telephone) != 11 {
 		response.UnprocessableEntity(context, nil, "手机号必须是11位")
-
 		return
 	}
 
 	if len(password) < 6 && len(password) > 16 {
-
 		response.UnprocessableEntity(context, nil, "密码必须是6-16位之间")
-
 		return
 	}
 
@@ -132,7 +128,7 @@ func Login(context *gin.Context) {
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 
-		response.Response(context, http.StatusBadRequest, 400, nil, "密码错误")
+		response.Response(context, http.StatusBadRequest, nil, "密码错误")
 
 		return
 	}
@@ -140,7 +136,7 @@ func Login(context *gin.Context) {
 	// 发送token
 	token, err := common.ReleaseToken(user)
 	if err != nil {
-		response.Response(context, http.StatusInternalServerError, 500, nil, "系统异常")
+		response.Response(context, http.StatusInternalServerError, nil, "系统异常")
 
 		log.Fatalf("token generate error: %v\n", err)
 		return

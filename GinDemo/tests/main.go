@@ -1,85 +1,37 @@
-package middleware
+package main
 
 import (
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
+	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
-	"strings"
-	"time"
 )
-//Jwtkey 秘钥 可通过配置文件配置
-var Jwtkey = []byte("blog_jwt_key")
 
-type MyClaims struct {
-	UserId int `json:"user_id"`
-	UserName string `json:"username"`
-	jwt.StandardClaims
-}
-
-// CreateToken 生成token
-func CreateToken(userId int,userName string) (string,error) {
-	expireTime := time.Now().Add(2*time.Hour) //过期时间
-	nowTime := time.Now() //当前时间
-	claims := MyClaims{
-		UserId: userId,
-		UserName: userName,
-		StandardClaims:jwt.StandardClaims{
-			ExpiresAt:expireTime.Unix(), //过期时间戳
-			IssuedAt: nowTime.Unix(), //当前时间戳
-			Issuer: "blogLeo", //颁发者签名
-			Subject: "userToken", //签名主题
-		},
+func main() {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "https://www.ahhuoshan.gov.cn/site/label/8888?IsAjax=1&dataType=html&_=0.3327293013106256&labelName=publicInfoList&siteId=6786551&pageSize=15&pageIndex=2&action=list&isDate=true&dateFormat=yyyy-MM-dd&length=50&organId=6596221&type=4&catId=7065111&cId=&result=%E6%9A%82%E6%97%A0%E7%9B%B8%E5%85%B3%E4%BF%A1%E6%81%AF&file=%2Fc3%2Fhs%2FpublicInfoList_newest", nil)
+	if err != nil {
+		log.Fatal(err)
 	}
-	tokenStruct := jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
-	return tokenStruct.SignedString(Jwtkey)
-}
-
-// CheckToken 验证token
-func CheckToken(token string) (*MyClaims,bool) {
-	tokenObj,_ := jwt.ParseWithClaims(token,&MyClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return Jwtkey,nil
-	})
-	if key,_ := tokenObj.Claims.(*MyClaims); tokenObj.Valid {
-		return key,true
-	}else{
-		return nil,false
+	req.Header.Set("Accept", "text/html, */*; q=0.01")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Ls-Language", "zh")
+	req.Header.Set("Referer", "https://www.ahhuoshan.gov.cn/public/column/6596221?type=4&action=list&nav=3&catId=7065111")
+	req.Header.Set("Sec-Fetch-Dest", "empty")
+	req.Header.Set("Sec-Fetch-Mode", "cors")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("sec-ch-ua-mobile", "?0")
+	req.Header.Set("Cookie", "__jsluid_s=57156a4cce4bc7a76ab632065364b484; UM_distinctid=18358747c061f9-013532c507f75a-26021c51-1fa400-18358747c07b40; luan_govc_SHIROJSESSIONID=1cd716e6-a8c1-4207-b94b-c651504b5098; CNZZDATA1279628965=496900267-1663633549-null%7C1664416610")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
 	}
-}
-
-// JwtMiddleware jwt中间件
-func JwtMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		//从请求头中获取token
-		tokenStr := c.Request.Header.Get("Authorization")
-		//用户不存在
-		if tokenStr == "" {
-			c.JSON(http.StatusOK,gin.H{"code":0, "msg":"用户不存在"})
-			c.Abort() //阻止执行
-			return
-		}
-		//token格式错误
-		tokenSlice := strings.SplitN(tokenStr," ",2)
-		if len(tokenSlice) != 2 && tokenSlice[0] != "Bearer" {
-			c.JSON(http.StatusOK,gin.H{"code":0, "msg":"token格式错误"})
-			c.Abort() //阻止执行
-			return
-		}
-		//验证token
-		tokenStruck,ok := CheckToken(tokenSlice[1])
-		if !ok {
-			c.JSON(http.StatusOK,gin.H{"code":0, "msg":"token不正确"})
-			c.Abort() //阻止执行
-			return
-		}
-		//token超时
-		if time.Now().Unix() > tokenStruck.ExpiresAt {
-			c.JSON(http.StatusOK,gin.H{"code":0, "msg":"token过期"})
-			c.Abort() //阻止执行
-			return
-		}
-		c.Set("username",tokenStruck.UserName)
-		c.Set("user_id",tokenStruck.UserId)
-
-		c.Next()
+	bodyText, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
 	}
+	fmt.Printf("%s\n", bodyText)
 }

@@ -8,3 +8,4 @@ datasource:
   username: root
   password: admin*123
   charset: utf8
+  loc: Asia/Shanghai

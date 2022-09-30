@@ -11,9 +11,9 @@ import (
 // code 自己定义的状态码
 // data 返回的空接口
 // msg 返回的信息
-func Response(context *gin.Context, httpStatus int, code int, data gin.H, msg string) {
+func Response(context *gin.Context, httpStatus int, data gin.H, msg string) {
 	context.JSON(httpStatus, gin.H{
-		"code": code,
+		"httpStatus": httpStatus,
 		"data": data,
 		"msg":  msg,
 	})

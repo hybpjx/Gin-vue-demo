@@ -17,6 +17,7 @@ app.use(Vuelidate)
 app.use(router)
 // axios
 app.use(VueAxios, axios)
+app.config.globalProperties.$axios = axios
 app.use(elementPlus)
 app.mount('#app')
 
