@@ -1,8 +1,11 @@
-1. 实现用户注册
+# 1. 实现用户注册
 安装gin
-go get -u github.com/gin-gonic/gin
+> go get -u github.com/gin-gonic/gin
+
 安装gorm
-go get -u gorm.io/gorm
+> go get -u gorm.io/gorm
+
+```go
 package main
 
 import (
@@ -131,6 +134,7 @@ func main() {
 	_ = r.Run(":9000")
 }
 
+```
 将功能解耦
 分别拆解为以下图
 注册返回jwt
@@ -138,6 +142,7 @@ func main() {
 github.com/dgrijalva/jwt-go
 
 jwt.go
+```go
 package common
 
 import (
@@ -231,10 +236,12 @@ func ParseToken(tokenString string) (*Claims, bool) {
 	}
 }
 
+```
 
 
-2. 实现登录功能
+# 2. 实现登录功能
 
+```go
 func Login(context *gin.Context) {
 
 	DB := common.GetDb()
@@ -296,7 +303,9 @@ func Login(context *gin.Context) {
 	)
 
 }
-3. 设置登录后返回用户模块
+```
+# 3. 设置登录后返回用户模块
+```go
 // Info 登录后 获取token 获得用户信息
 func Info(context *gin.Context) {
 	//获得所有信息 UserInfo 是一个结构体
@@ -320,7 +329,9 @@ func Info(context *gin.Context) {
 	*/
 
 }
+```
 路过一个中间件
+```go
 package middleware
 
 import (
@@ -403,8 +414,10 @@ func AuthMiddleware() gin.HandlerFunc {
 
 }
 
+```
 
-4. 返回统一的格式
+# 4. 返回统一的格式
+```go
 package response
 
 import (
@@ -450,23 +463,28 @@ func UnprocessableEntity(context *gin.Context, data gin.H, msg string) {
 	})
 }
 
-5. 从文件中读取配置
-github.com/spf13/viper
+```
+# 5. 从文件中读取配置
+[github.com/spf13/viper](https://github.com/spf13/viper)
 
-go get -u github.com/spf13/viper
+> go get -u github.com/spf13/viper
 
-6. 前端
+
+# 6. 前端
 设置 eslint
 安装bootsrtip
-https://code.z01.com/bootstrap-vue/docs/
+[https://code.z01.com/bootstrap-vue/docs/](https://code.z01.com/bootstrap-vue/docs/)
 基于模块化
 你可以使用Webpack、 Parcel 、 rollup.js等方法引入到项目中，通过yarn 或者 npm 来获取安装Vue.js、 BootstrapVue 和 Bootstrap v4:
-With npm
-npm install vue bootstrap-vue bootstrap
-With yarn
-yarn add vue bootstrap-vue bootstrap
-yarn add bootstrap@4
+**With npm**
+> npm install vue bootstrap-vue bootstrap
+
+**With yarn**
+> yarn add vue bootstrap-vue bootstrap
+> yarn add bootstrap@4
+
 然后在你的应用程序入口点注BootstrapVue：
+```javascript
 
 // app.js
 import Vue from 'vue'
@@ -476,7 +494,9 @@ import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
 Vue.use(BootstrapVue)
 // Optionally install the BootstrapVue icon components plugin
 Vue.use(IconsPlugin)
+```
 导入
+```javascript
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
@@ -487,16 +507,22 @@ import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 createApp(App).use(store).use(router).mount('#app')
 
-7. 安装 前端验证插件
+```
+# 7. 安装 前端验证插件
 
-https://vuelidate.js.org/#getting-started
+[https://vuelidate.js.org/#getting-started](https://vuelidate.js.org/#getting-started)
 
-8. 安装axios
+# 8. 安装axios
 
+```python
 yarn add axios
 yarn add vue-axios
+```
 或者
+```python
 npm install axios vue-axios
+```
+```vue
 // // 点击事件的方法
   function register() {
     // 验证数据
@@ -543,10 +569,12 @@ npm install axios vue-axios
 
 
   }
-9. 登录成功不显示登录和注册
+```
+# 9. 登录成功不显示登录和注册
 
-10. 封装axios
-https://github.com/axios/axios
+# 10. 封装axios
+[https://github.com/axios/axios](https://github.com/axios/axios)
+```vue
 import storageService from "@/service/storageService";
 import axios from "axios";
 
@@ -556,8 +584,10 @@ export default axios.create({
     timeout: 1000,
     headers: { Authorization: `$Bearer ${storageService.get(storageService.USER_TOKEN)}` }
 });
+```
 创建两个服务
 storageServices
+```vue
 // 本地缓存服务
 
 const PREFIX = "ginessential_"
@@ -583,7 +613,9 @@ export default {
     USER_TOKEN,
     USER_INFO
 }
+```
 userServices.js
+```vue
 import request from "@/utils/requests";
 
 // 用户注册
@@ -592,8 +624,10 @@ const register = ({ name, telephone, password }) => {
 }
 
 export default { register }
+```
 
-11.后端文章分类接口
+# 11.后端文章分类接口
+```go
 package controller
 
 import (
@@ -703,14 +737,18 @@ func (c CategoryController) Select(ctx *gin.Context) {
 	return
 }
 
- 
+```
 
-12. go中使用uuid
 
-安装
+# 12. go中使用uuid
+
+## 安装
+```go
 go get github.com/satori/go.uuid
 go get github.com/jinzhu/gorm
-使用
+```
+## 使用
+```go
 package model
 
 import uuid "github.com/satori/go.uuid"
@@ -719,3 +757,4 @@ type Post struct {
 	ID         uuid.UUID `json:"id" gorm:"type:char(36):primary_key"`
 	...
 }
+```
