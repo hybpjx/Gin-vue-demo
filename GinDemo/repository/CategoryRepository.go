@@ -3,7 +3,7 @@ package repository
 import (
 	"GinDemo/common"
 	"GinDemo/model"
-	"gorm.io/gorm"
+	"github.com/jinzhu/gorm"
 )
 
 type CategoryRepository struct {
@@ -46,3 +46,4 @@ func (c CategoryRepository) DeleteByID(id int) error {
 	}
 	return nil
 }
+

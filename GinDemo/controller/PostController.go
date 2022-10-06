@@ -7,7 +7,7 @@ import (
 	"GinDemo/vo"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"github.com/jinzhu/gorm"
 	"log"
 	"strconv"
 )
@@ -28,7 +28,7 @@ func (p PostController) PageList(ctx *gin.Context) {
 
 	// 分页
 	var posts []model.Post
-	p.DB.Order("created desc").Offset((pageNum - 1) * pageSize).Limit(pageSize).Find(&posts)
+	p.DB.Order("created_at desc").Offset((pageNum - 1) * pageSize).Limit(pageSize).Find(&posts)
 
 	// 记录的总条数
 	var total int64
@@ -50,9 +50,8 @@ func NewPostController() IPostController {
 func (p PostController) Create(ctx *gin.Context) {
 
 	var requestPost vo.CreatePostRequest
-
 	if err := ctx.ShouldBind(&requestPost); err != nil {
-		log.Println(err)
+		log.Println(err.Error())
 		response.Fail(ctx, gin.H{"数据": requestPost}, "数据验证错误")
 		return
 	}
@@ -60,8 +59,7 @@ func (p PostController) Create(ctx *gin.Context) {
 	//I8dSWsgFP0
 	// 获取登录用户
 	user, _ := ctx.Get("userInfo")
-
-	fmt.Println(user.(model.User).ID)
+	fmt.Println(user)
 	// 创建文章
 	post := model.Post{
 		UserID:     user.(model.User).ID,
@@ -70,6 +68,10 @@ func (p PostController) Create(ctx *gin.Context) {
 		HeadImg:    requestPost.HeadImg,
 		Content:    requestPost.Content,
 	}
+
+	fmt.Println(post)
+
+
 	if err := p.DB.Create(&post).Error; err != nil {
 		panic(err)
 		return
@@ -80,13 +82,8 @@ func (p PostController) Create(ctx *gin.Context) {
 }
 
 func (p PostController) Delete(ctx *gin.Context) {
-	// 获取path的ID
-	postID := ctx.Params.ByName("id")
-
-	var post model.Post
-
-	if err := p.DB.First(&post, postID).Error; err != nil {
-		response.Fail(ctx, nil, "文章不存在")
+	post, done := p.SelectPost(ctx)
+	if done {
 		return
 	}
 
@@ -109,20 +106,15 @@ func (p PostController) Put(ctx *gin.Context) {
 	var requestPost vo.CreatePostRequest
 
 	if err := ctx.ShouldBind(&requestPost); err != nil {
-		log.Println("1111")
 		response.Fail(ctx, nil, "数据验证错误")
 		return
 	}
 
-	// 获取path的ID
-	postID := ctx.Params.ByName("id")
-
-	var post model.Post
-
-	if err := p.DB.First(&post, postID).Error; err != nil {
-		response.Fail(ctx, nil, "文章不存在")
+	post, done := p.SelectPost(ctx)
+	if done {
 		return
 	}
+
 	// 判断当前用户是否是文章的作者
 	//  获取登录用户
 	user, _ := ctx.Get("userInfo")
@@ -142,15 +134,26 @@ func (p PostController) Put(ctx *gin.Context) {
 }
 
 func (p PostController) Select(ctx *gin.Context) {
+	post, done := p.SelectPost(ctx)
+	if done {
+		return
+	}
+
+	response.Success(ctx, gin.H{"post": post}, "查询成功")
+	return
+}
+
+
+
+
+func (p PostController) SelectPost(ctx *gin.Context) (model.Post, bool) {
 	// 获取path的ID
 	postID := ctx.Params.ByName("id")
 
 	var post model.Post
-
-	if err := p.DB.Preload("Category").First(&post, postID).Error; err != nil {
+	if p.DB.Preload("Category").Where("id = ?", postID).First(&post).RecordNotFound() {
 		response.Fail(ctx, nil, "文章不存在")
-		return
+		return model.Post{}, true
 	}
-	response.Success(ctx, gin.H{"post": post}, "查询成功")
-	return
+	return post, false
 }

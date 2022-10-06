@@ -6,8 +6,8 @@ import (
 	"GinDemo/response"
 	"GinDemo/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
 )
@@ -101,6 +101,7 @@ func Login(context *gin.Context) {
 	//	1. 获取参数
 	telephone := requestUser.Telephone
 	password := requestUser.Password
+
 	// 2. 数据验证
 	if len(telephone) != 11 {
 		response.UnprocessableEntity(context, nil, "手机号必须是11位")

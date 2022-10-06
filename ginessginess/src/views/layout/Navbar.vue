@@ -15,6 +15,29 @@
 
                 <div id="navbarBasicExample" class="navbar-menu">
 
+
+                    
+                    <div class="navbar-start">
+                        <a class="navbar-item" @click="$router.replace({name:'about'})">
+                        关于
+                        </a>
+                    </div>
+
+
+                    <div class="navbar-start">
+                        <a class="navbar-item">
+                        Home
+                        </a>
+                        
+                        <a class="navbar-item">
+                        Documentation
+                        </a>
+                    </div>
+                </div>
+                
+
+                <div id="navbarBasicExample" class="navbar-menu">
+
                     <div class="navbar-end" v-if="userInfo">
                         <div class="navbar-item">
 
@@ -78,7 +101,7 @@ export default {
             let user = JSON.parse($store.state.userModule.userInfo)
             return user;
         })
-
+        // console.log(userInfo.value.Name)
 
         function logout() {
 
@@ -94,6 +117,11 @@ export default {
                     ElMessage.error("退出错误")
                 })
 
+        }
+
+
+        function get_categories(){
+            
         }
 
 

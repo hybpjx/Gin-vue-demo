@@ -10,7 +10,7 @@ func RecoveryMiddleware() gin.HandlerFunc {
 	return func(context *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				response.Fail(context, nil, fmt.Sprint(err))
+				response.Fail(context, nil, fmt.Sprint("系统错误",err))
 			}
 		}()
 

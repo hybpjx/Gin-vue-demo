@@ -19,6 +19,7 @@ func CollectRoute(r *gin.Engine) *gin.Engine {
 	categoryRoutes.DELETE(":id", categoryController.Delete)
 	categoryRoutes.PUT(":id", categoryController.Put)
 	categoryRoutes.GET(":id", categoryController.Select)
+	categoryRoutes.GET("all", categoryController.SelectAll)
 	// 局部修改
 	//categoryRoutes.PATCH("")
 

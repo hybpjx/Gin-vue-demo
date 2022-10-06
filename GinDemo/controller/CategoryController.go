@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"GinDemo/common"
 	"GinDemo/model"
 	"GinDemo/repository"
 	"GinDemo/response"
 	"GinDemo/vo"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -12,6 +14,7 @@ import (
 
 type ICategoryController interface {
 	RestController
+	SelectAll(ctx *gin.Context)
 }
 
 type CategoryController struct {
@@ -30,6 +33,7 @@ func NewCategoryController() ICategoryController {
 	}
 }
 
+// Create 创建某个分类
 func (c CategoryController) Create(ctx *gin.Context) {
 	var requestCategory vo.CreateCategoryRequest
 
@@ -50,6 +54,7 @@ func (c CategoryController) Create(ctx *gin.Context) {
 	return
 }
 
+// Delete 删除某个分类
 func (c CategoryController) Delete(ctx *gin.Context) {
 	// 获取path中的参数
 	categoryID, _ := strconv.Atoi(ctx.Params.ByName("id"))
@@ -71,6 +76,7 @@ func (c CategoryController) Delete(ctx *gin.Context) {
 	return
 }
 
+// Put 更新某个分类
 func (c CategoryController) Put(ctx *gin.Context) {
 	// 绑定body中的参数
 	var requestCategory vo.CreateCategoryRequest
@@ -97,6 +103,7 @@ func (c CategoryController) Put(ctx *gin.Context) {
 	return
 }
 
+// Select 查询单个ID
 func (c CategoryController) Select(ctx *gin.Context) {
 	// 获取path中的参数
 	categoryID, _ := strconv.Atoi(ctx.Params.ByName("id"))
@@ -109,4 +116,24 @@ func (c CategoryController) Select(ctx *gin.Context) {
 
 	response.Success(ctx, gin.H{"SelectCategory": SelectCategory}, "查询成功")
 	return
+}
+
+func (c CategoryController)SelectAll(ctx *gin.Context){
+	db := common.DB
+
+	// 种类列表
+	var categories []model.Category
+
+	db.Order("created_at desc").Offset(0).Limit(15).Find(&categories)
+	fmt.Println(categories)
+
+	// 记录种类列表的总条数
+	var total int64
+	db.Model(model.Category{}).Count(&total)
+
+	response.Success(ctx, gin.H{
+		"data":  categories,
+		"total": total,
+	}, "查询种类成功")
+
 }

@@ -3,17 +3,15 @@ package common
 import (
 	"GinDemo/model"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"log"
 	"net/url"
 )
 
 var DB *gorm.DB
 
 func InitDB() *gorm.DB {
-	//driverName := "mysql"
+	driverName := viper.GetString("datasource.driverName")
 	host := viper.GetString("datasource.host")
 	port := viper.GetString("datasource.port")
 	username := viper.GetString("datasource.username")
@@ -33,9 +31,11 @@ func InitDB() *gorm.DB {
 
 	var err error
 
-	DB, err = gorm.Open(mysql.Open(args), &gorm.Config{})
+	//DB, err = gorm.Open(mysql.Open(args), &gorm.Config{})
+	DB, err = gorm.Open(driverName, args)
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)
+		panic("fail to connect database, err: " + err.Error())
 	}
 
 	_ = DB.AutoMigrate(&model.User{})

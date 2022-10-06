@@ -2,9 +2,8 @@ package middleware
 
 import (
 	"GinDemo/common"
-	"GinDemo/dto"
+	"GinDemo/model"
 	"GinDemo/response"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -16,7 +15,9 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(context *gin.Context) {
 		// 获取 authorization headers
 		tokenString := context.GetHeader("Authorization")
-		fmt.Printf("目前的tokenString：%v\n", tokenString)
+
+		//fmt.Printf("目前的tokenString：%v\n", tokenString)
+
 		// 如果token 开头是空，或者开头不是以bearer结尾的 则报错
 		if tokenString == "" || !strings.HasPrefix(tokenString, "Bearer") {
 			response.Response(context, http.StatusUnauthorized, nil, "权限验证错误")
@@ -47,35 +48,25 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		/*
-			//返回所有数据
-			context.Set("userInfo", tokenStruck)
-			context.Next()
+		//token通过验证, 获取claims中的UserID
+		userId := claims.UserID
+		DB := common.GetDb()
+		var user model.User
+		DB.First(&user, userId)
 
-			// 返回部分数据
-			var user model.User
-			db := common.GetDb()
-			db.First(&user, tokenStruck.UserID)
+		// 验证用户是否存在
+		if user.ID == 0 {
+			context.JSON(http.StatusUnauthorized, gin.H{
+				"code": 401,
+				"msg":  "权限不足",
+			})
+			context.Abort()
+			return
+		}
 
-			// 如果用户不存在
-			if user.ID == 0 {
-				context.JSON(http.StatusUnauthorized, gin.H{
-					"code": 401,
-					"msg":  "用户不存在",
-				})
-				context.Abort()
-				return
-			}
+		//用户存在 将user信息写入上下文
+		context.Set("userInfo", user)
 
-			// 返回部分数据
-			context.Set("name", user.Name)
-			context.Set("telephone", user.Telephone)
-			context.Next()
-		*/
-
-		userInfo := dto.ToUserDto(claims, context)
-		// 返回部分数据
-		context.Set("userInfo", userInfo)
 		context.Next()
 
 	}
